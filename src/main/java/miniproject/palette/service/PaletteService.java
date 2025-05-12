@@ -1,15 +1,21 @@
 package miniproject.palette.service;
 
+import miniproject.App;
 import miniproject.common.code.MessageCode;
 import miniproject.common.code.StateCode;
 import miniproject.common.util.MoveAndCleanAsset;
+import miniproject.global.ImgViewer;
+import miniproject.global.InputChecker;
 import miniproject.member.dao.Member;
 import miniproject.member.repository.MemberRepository;
 import miniproject.member.repository.MemberRepositoryImpl;
 import miniproject.paint.dao.Paint;
 import miniproject.paint.repository.PaintRepository;
 import miniproject.paint.repository.PaintRepositoryImpl;
+import miniproject.palPaint.repository.PalPaintRepository;
+import miniproject.palPaint.repository.PalPaintRepositoryImpl;
 import miniproject.palette.dao.Palette;
+import miniproject.palette.dto.PaletteDto;
 import miniproject.palette.repository.PaletteRepository;
 import miniproject.palette.repository.PaletteRepositoryImpl;
 
@@ -17,36 +23,38 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
 public class PaletteService {
     private final String WRONGMESSAGE = MessageCode.WRONG.getMessage();
-    private final int EXIT = StateCode.EXIT.getCode();
 
-    private final String paletteDBPath = "C:/temp/pfdb/palette.dat";
-    private final String memberDBPath = "C:/temp/pfdb/member.dat";
     private final String paletteImgPath = "C:/temp/images";
 
     private final PaletteRepository paletteRepository = new PaletteRepositoryImpl();
     private final MemberRepository memberRepository = new MemberRepositoryImpl();
     private final PaintRepository paintRepository = new PaintRepositoryImpl();
+    private final PalPaintRepository palPaintRepository = new PalPaintRepositoryImpl();
     private final MoveAndCleanAsset moveAndCleanAsset = new MoveAndCleanAsset();
+
+    private final Scanner sc = new Scanner(System.in);
+    private final Member member = App.member;
 
     /**
      * 팔레트 전체 목록 조회 서비스
      * @throws Exception
      */
-    public void findAllPalette() throws Exception{
+    public void findAllPalette(){
 
-        List<Palette> palettes = paletteRepository.findAll();
+        List<PaletteDto> palettes = paletteRepository.findAll().orElse(Collections.emptyList());
 
-        if(palettes == null || palettes.size() == 0) {
+        if(palettes.isEmpty()) {
             System.out.println("등록된 팔레트가 없습니다.");
             return;
         }
 
-//        palettes.stream().forEach(Palette::printInfo);
+        palettes.forEach(PaletteDto::printInfo);
 
     }
 
@@ -62,12 +70,12 @@ public class PaletteService {
         System.out.print("좋아요 할 팔레트 id 입력");
         int id = Integer.parseInt(sc.nextLine());
 
-        List<Palette> palettes = paletteRepository.findAll();
-
-        if(palettes == null || palettes.size() == 0) {
-            System.out.println("등록된 팔레트가 없습니다.");
-            return;
-        }
+//        List<Palette> palettes = paletteRepository.findAll();
+//
+//        if(palettes == null || palettes.size() == 0) {
+//            System.out.println("등록된 팔레트가 없습니다.");
+//            return;
+//        }
 
         // 모든 팔레트 목록 중, 입력한 id 에 해당하는 팔레트가 있는지 확인
 //        Palette likePal = palettes.stream().filter(p->p.getId() == id).findFirst().orElse(null);
@@ -258,12 +266,8 @@ public class PaletteService {
 
     /**
      * 팔레트 신규 저장
-     * @param member
-     * @throws Exception
      */
-    public void createPalette(Member member) throws Exception {
-        Scanner sc = new Scanner(System.in);
-
+    public void createPalette() {
         System.out.println("-----팔레트 신규 등록-----");
         System.out.print("팔레트 이름 입력 : ");
         String name = sc.nextLine();
@@ -275,68 +279,70 @@ public class PaletteService {
         String imgInput = sc.nextLine();
         String imgUrl = "";
         if(imgInput.equals("q")){
-
-        } else {
-            // asset 에 저장된 이미지를 PaletteDBPath 에 저장 후 asset 의 파일 내용 전체 삭제, 경로 저장
-            imgUrl = moveAndCleanAsset.saveImg(paletteImgPath);
+            imgUrl = "";
+        }else{
+            imgUrl = moveAndCleanAsset.saveImg(1);
         }
-
 
         System.out.println("팔레트에 사용된 페인트 목록 입력 (0 입력 시 물감 입력 종료)");
-        List<Paint> paintList = new ArrayList<Paint>();
-        List<Paint> allPaintList = paintRepository.findAll("", null);
+        List<Integer> paintList = new ArrayList<>();
+
         while (true){
-            int input = Integer.parseInt(sc.nextLine());
-            if(input == 0) break;
-//            if(!paintList.contains(input) && allPaintList.stream().anyMatch(paint -> paint.getId() == input)) {
-//                Paint paint = paintRepository.findById(input);
-//                paintList.add(paint);
-//            }
+
+            int input = InputChecker.validate(sc.nextLine());
+            if(input == -1) {
+                System.out.println("잘못된 페인트 번호 입력입니다. 다시 입력해주세요.");
+            } else if(input == 0){
+                break;
+            } else {
+                if(paintRepository.isPaintExist(input)){
+                    paintList.add(input);
+                }
+            }
         }
 
-        // autoIncreament idx 흉내내기
-        int id = paletteRepository.findLastId()+1;
-
-//        Palette palette = new Palette(id, member.getId(), name, imgUrl, paintList);
+        Palette palette = new Palette(member.getMemberPk(), name, imgUrl);
 
         // 팔레트 저장
-//        paletteRepository.insertOrUpdate(palette);
+        Integer num = paletteRepository.save(palette).orElse(null);
+        if(num == null) {
+            System.out.println("팔레트 저장 실패.\n");
+        } else {
+            // 팔레트 내 페인트 목록 저장
+            for(int i : paintList) {
+                if(!palPaintRepository.save(num, i)){
+                    System.out.println(i+"번 물감 저장 실패");
+                }
+            }
+        }
 
         System.out.println("-----팔레트 "+name+" 저장 완료-----");
     }
 
     /**
      * 팔레트 상세조회(사진 앱 오픈됨)
-     * @throws Exception
      */
-    public void findPaletteDetailById() throws Exception {
+    public void findPaletteDetailById() {
         Scanner sc = new Scanner(System.in);
 
         System.out.println("조회할 팔레트 번호를 입력하세요.");
-        int id = Integer.parseInt(sc.nextLine());
+        int id = InputChecker.validate(sc.nextLine());
 
-        Palette palette = paletteRepository.findById(id);
+        if(id == -1) {
+            return;
+        }
 
-//        if(palette == null){
-//            System.out.println("\n팔레트 ID "+id+" 가 존재하지 않습니다.");
-//            return;
-//        } else if(palette.getImgUrl() == null || palette.getImgUrl().equals("")){
-//            System.out.println();
-//        } else {
-//            File imageFile = new File(palette.getImgUrl());
-//            if (Desktop.isDesktopSupported()) {
-//                Desktop desktop = Desktop.getDesktop();
-//                try {
-//                    desktop.open(imageFile);
-//                } catch (IOException e) {
-//                    System.out.println("\n팔레트 번호 "+id+" 의 이미지 파일이 잘못되었습니다.");
-//                    e.printStackTrace();
-//                }
-//            } else {
-//                System.out.println("\nDesktop API를 사용할 수 없습니다.");
-//            }
-//        }
+        PaletteDto palette = paletteRepository.findByPalettePk(id).orElse(null);
 
-//        palette.printInfo();
+        if(palette == null) {
+            System.out.println("팔레트 ID "+id+" 가 존재하지 않습니다.");
+            return;
+        } else if (palette.getImgSrc().isEmpty()){
+            System.out.println("이미지가 존재하지 않습니다.\n");
+        } else {
+            ImgViewer.viewer(palette.getImgSrc());
+        }
+
+        palette.printInfo();
     }
 }

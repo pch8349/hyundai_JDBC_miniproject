@@ -8,14 +8,16 @@ import java.util.List;
 
 public class MoveAndCleanAsset {
 
+    private final String[] ImgPath = {"C:\\temp\\paint", "C:\\temp\\palette"};
+
     /**
      * 이미지 파일 String 으로 변환
-     * @param dbPath
+     * @param dir 0은 물감, 1은 팔레트
      * @return
      */
-    public String saveImg(String dbPath){
-        Path assetDir = Path.of("C:/Users/사용자/git/java_study/src/asset");
-        Path targetDir = Path.of(dbPath);
+    public String saveImg(int dir){
+        Path assetDir = Path.of("C:\\Users\\pch\\git\\JDBC\\hyundai_JDBC_miniproject\\src\\asset");
+        Path targetDir = Path.of(ImgPath[dir]);
 
         try {
             // asset 폴더 내의 모든 파일 목록 (디렉토리 제외)

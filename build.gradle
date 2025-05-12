@@ -19,6 +19,11 @@ dependencies {
 
     // jdbc 추가
     implementation 'com.oracle.database.jdbc:ojdbc11:21.9.0.0'
+
+    // jackson 추가(json 파싱)
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.0'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.0'
 }
 
 test {

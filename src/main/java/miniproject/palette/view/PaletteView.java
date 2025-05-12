@@ -1,7 +1,8 @@
 package miniproject.palette.view;
 
-import miniproject.common.code.MessageCode;
+import miniproject.App;
 import miniproject.common.code.StateCode;
+import miniproject.global.InputChecker;
 import miniproject.member.dao.Member;
 import miniproject.palette.service.PaletteService;
 
@@ -9,12 +10,13 @@ import java.util.Scanner;
 
 public class PaletteView {
 
-    private final String WRONGMESSAGE = MessageCode.WRONG.getMessage();
     private final int EXIT = StateCode.EXIT.getCode();
 
     private final PaletteService paletteService = new PaletteService();
 
-    public void paletteMenuView(Member member) throws Exception{
+    private final Member member = App.member;
+
+    public void paletteMenuView() throws Exception{
         Scanner sc = new Scanner(System.in);
 
         while(true) {
@@ -28,7 +30,7 @@ public class PaletteView {
             System.out.println("7. 팔레트 신규등록");
             System.out.println("0. 뒤로가기");
 
-            int input = Integer.parseInt(sc.nextLine());
+            int input = InputChecker.validate(sc.nextLine(), 0, 7);
 
             if(input == EXIT) {
                 break;
@@ -58,12 +60,9 @@ public class PaletteView {
 
             } else if(input == 7){
 
-                paletteService.createPalette(member);
+                paletteService.createPalette();
 
-            } else {
-                System.out.println(WRONGMESSAGE);
             }
-
         }
     }
 }

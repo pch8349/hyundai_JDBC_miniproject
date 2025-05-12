@@ -37,4 +37,8 @@ public class Palette implements Serializable {
         this.createDate = createDate;
         this.editDate = editDate;
     }
+
+    public void printInfo(){
+        System.out.println(palPk + ". "+palName);
+    }
 }

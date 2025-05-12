@@ -95,7 +95,7 @@ public class MainView {
 
             // 마이팔레트
             if (input == 1) {
-                paletteView.paletteMenuView(member);
+                paletteView.paletteMenuView();
             }
             // 물감
             else if (input == 2) {

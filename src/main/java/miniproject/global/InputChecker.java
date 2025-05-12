@@ -22,4 +22,13 @@ public class InputChecker {
             return inputInt;
         }
     }
+
+    public static int validate(String input){
+        if(!input.matches("\\d+")) {
+            System.out.println("잘못된 입력입니다\n\n");
+            return -1;
+        } else{
+            return Integer.parseInt(input);
+        }
+    }
 }

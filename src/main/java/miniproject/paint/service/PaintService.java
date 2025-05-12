@@ -1,29 +1,41 @@
 package miniproject.paint.service;
 
-import miniproject.common.code.MessageCode;
+import miniproject.App;
+import miniproject.brand.code.BrandCode;
 import miniproject.common.code.PaintColorCode;
 import miniproject.common.code.StateCode;
+import miniproject.common.util.MoveAndCleanAsset;
+import miniproject.global.ImgViewer;
+import miniproject.global.InputChecker;
+import miniproject.global.dto.ResponseDto;
 import miniproject.member.dao.Member;
 import miniproject.paint.dao.Paint;
+import miniproject.paint.dto.PaintDto;
 import miniproject.paint.repository.PaintRepository;
 import miniproject.paint.repository.PaintRepositoryImpl;
+import miniproject.palPaint.repository.PalPaintRepository;
+import miniproject.palPaint.repository.PalPaintRepositoryImpl;
 import miniproject.palette.dao.Palette;
 import miniproject.palette.repository.PaletteRepository;
 import miniproject.palette.repository.PaletteRepositoryImpl;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
 public class PaintService {
-    private final String WRONGMESSAGE = MessageCode.WRONG.getMessage();
     private final int EXIT = StateCode.EXIT.getCode();
-
-    private final String paintDBPath = "C:/temp/pfdb/paint.dat";
 
     private final PaintRepository paintRepository = new PaintRepositoryImpl();
     private final PaletteRepository paletteRepository = new PaletteRepositoryImpl();
+    private final MoveAndCleanAsset moveAndCleanAsset = new MoveAndCleanAsset();
+    private final PalPaintRepository palPaintRepository = new PalPaintRepositoryImpl();
+
+    private final Member member = App.member;
+
+    Scanner sc = new Scanner(System.in);
 
     /**
      * 페인트 검색어, 색 조건에 맞는 결과 모두 출력
@@ -31,12 +43,13 @@ public class PaintService {
      * @param codeList
      * @throws Exception
      */
-    public void findAllPaint(String search, List<PaintColorCode> codeList) throws Exception{
+    public void findAllPaint(String search, List<PaintColorCode> codeList){
 
-        List<Paint> paints = paintRepository.findAll(search, codeList);
+        List<PaintDto> paints = paintRepository.findAll(search, codeList).orElse(Collections.emptyList());
 
         System.out.println("\n-----------물감 검색------------");
-//        paints.stream().forEach(Paint::printInfo);
+        paints.stream().forEach(PaintDto::printInfo);
+        System.out.println();
     }
 
     /**
@@ -44,7 +57,6 @@ public class PaintService {
      * @return
      */
     public List<PaintColorCode> setPaintSearchFilter(){
-        Scanner sc = new Scanner(System.in);
         PaintColorCode[] codeArr = {PaintColorCode.RED, PaintColorCode.ORANGE, PaintColorCode.YELLOW, PaintColorCode.GREEN, PaintColorCode.BLUE, PaintColorCode.NAVY, PaintColorCode.PURPLE, PaintColorCode.PINK, PaintColorCode.WHITE, PaintColorCode.BLACK, PaintColorCode.GRAY, PaintColorCode.BROWN, PaintColorCode.IVORY};
         List<PaintColorCode> codeList = new ArrayList<PaintColorCode>();
 
@@ -52,19 +64,14 @@ public class PaintService {
         while(true) {
             System.out.println("\n-----------------");
             System.out.println("검색하고 싶은 색상을 선택하십시오.");
-            System.out.println("1.RED, 2.ORANGE, 3.YELLOW, 4.GREEN, 5.BLUE, " +
-                    "6.NAVY, 7.PURPLE, 8.PINK, 9.WHITE, 10.BLACK, " +
-                    "11.GRAY, 12.BROWN, 13.IVORY");
+            PaintColorCode.printInfo();
             System.out.println("0. 뒤로가기");
-            int input = Integer.parseInt(sc.nextLine());
+            int input = InputChecker.validate(sc.nextLine(), 0, PaintColorCode.getAllColors().size());
+
 
             if(input == EXIT) break;
-            else if(input > 13) System.out.println(WRONGMESSAGE);
-
-            if(codeList.stream().anyMatch(code -> code == codeArr[input])){
-                codeList.stream().findFirst().ifPresent(codeList::remove);
-            } else {
-                codeList.add(codeArr[input - 1]);
+            else if(input >= 0 && input <= PaintColorCode.getAllColors().size()) {
+                codeList.add(PaintColorCode.getAllColors().get(input-1));
             }
 
             System.out.println("현재 적용된 필터 목록");
@@ -74,62 +81,69 @@ public class PaintService {
         return codeList;
     }
 
-    /**
-     * 페인트 데이터 txt 파일 .dat 파일로 변환해 넣기. 더미데이터 생성.
-     * 파일 경로는 "C:/temp/pfdb/paint.txt" 가 되게 놓기
-     * @throws Exception
-     */
-    public void paintDataWriter() throws Exception {
-        File txtFile = new File("C:/temp/pfdb/paint.txt");
-        File datFile = new File(paintDBPath);
+    public ResponseDto registPaint(){
+        System.out.println("\n\n--------새로운 페인트 입력-------");
 
-        BufferedReader br = new BufferedReader(new FileReader(txtFile));
+        System.out.println("브랜드 번호를 선택하세요");
+        List<BrandCode> brandCodes = BrandCode.getAllBrandCodes();
+        for(int i = 0; i<brandCodes.size(); i++){
+            System.out.println((i+1)+". "+brandCodes.get(i).name());
+        }
+        int brandIdx = InputChecker.validate(sc.nextLine(), 1, brandCodes.size());
 
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(datFile));
+        System.out.print("색상명을 입력하세요 : ");
+        String colorEn = sc.nextLine();
 
-        String line;
-        int id = 1;
+        System.out.println("색상 그룹을 선택하세요.");
+        List<PaintColorCode> paintColorCodes = PaintColorCode.getAllColors();
+        for(int i = 0; i<paintColorCodes.size(); i++){
+            System.out.println((i+1)+". "+paintColorCodes.get(i).name());
+        }
+        int colorgroupInput = InputChecker.validate(sc.nextLine(), 1, paintColorCodes.size());
+        PaintColorCode colorgroupEn = paintColorCodes.get(colorgroupInput-1);
 
-        while ((line = br.readLine()) != null) {
-            String[] parts = line.split(",");
-            if (parts.length != 3) continue;
+        System.out.println("등록할 팔레트 이미지를 asset 폴더 안에 넣어주십시오.");
+        System.out.println("jpg, png 형식만 가능합니다.");
+        System.out.println("이미지를 폴더에 넣으셨다면 enter, 생략하려면 q 를 입력해주세요.");
 
-            String brand = parts[0].trim();
-            String name = parts[1].trim();
-            String colorStr = parts[2].trim();
-
-            PaintColorCode color = PaintColorCode.fromString(colorStr);
-//            Paint paint = new Paint(id++, name, brand, color);
-//            oos.writeObject(paint);
+        String imgInput = sc.nextLine();
+        String prodImg = "";
+        if(imgInput.equals("q")){
+            prodImg = "";
+        }else{
+            prodImg = moveAndCleanAsset.saveImg(0);
         }
 
-        System.out.println("페인트 더미데이터 새로 넣기 성공\n");
+        Paint paint = new Paint(brandIdx, colorEn, colorgroupEn, prodImg, member.getMemberPk());
 
-        oos.flush();
-        oos.close();
-        br.close();
+        boolean isSuccess = paintRepository.registPaint(paint);
+        if(isSuccess){
+            return ResponseDto.success();
+        } else {
+            return ResponseDto.fail("알 수 없는 이유로 페인트 등록에 실패했습니다.\n");
+        }
     }
 
     /**
      * 페인트 ID 를 받아 내 팔레트에 추가하기
-     * @param member
      * @throws Exception
      */
-    public void addPaintToPalette(Member member) throws Exception{
-        Scanner sc = new Scanner(System.in);
+    public void addPaintToPalette() {
 
         Paint paint = null;
         Palette palette = null;
 
         while(true) {
-            System.out.println("추가할 페인트 번호 입력하세요. q 입력 시 종료");
-            String input = sc.nextLine();
-            if(input.equals("q")){
+            System.out.println("추가할 페인트 번호 입력하세요. 0 입력 시 종료");
+            int input = InputChecker.validate(sc.nextLine());
+            if(input ==0){
                 System.out.println("입력 취소");
                 return;
+            } else if(input == -1){
+                continue;
             }
 
-            paint = paintRepository.findById(Integer.parseInt(input));
+            paint = paintRepository.findById(input).orElse(null);
 
             if (paint == null) {
                 System.out.println("그런 페인트 id 는 존재하지 않습니다.");
@@ -138,44 +152,41 @@ public class PaintService {
             }
         }
 
-        List<Palette> palettes = paletteRepository.findByMember(member);
-        if(palettes == null || palettes.size() == 0) {
+        List<Palette> palettes = paletteRepository.findByMemberIdx(member.getMemberPk()).orElse(Collections.emptyList());
+        if(palettes.isEmpty()) {
             System.out.println("팔레트가 없습니다.");
             return;
         }
         System.out.println("내 팔레트 목록");
-//        palettes.stream().forEach(Palette::printInfo);
+        palettes.forEach(Palette::printInfo);
 
         while(true) {
-            System.out.println("\n페인트를 추가할 팔레트 번호를 입력해주세요. q 입력 시 종료");
-            String paletteId = sc.nextLine();
-            if(paletteId.equals("q")){
+            System.out.println("\n페인트를 추가할 팔레트 번호를 입력해주세요. 0 입력 시 종료");
+            int input = InputChecker.validate(sc.nextLine());
+            if(input == 0){
                 System.out.println("입력 취소");
                 return;
+            } else if (input == -1) {
+                continue;
+            }  else {
+                // 페인트 넣기
+                if(palPaintRepository.save(input, paint.getPaintPk())){
+                    System.out.println("페인트 내 팔레트에 등록 성공\n");
+                } else {
+                    System.out.println("알 수 없는 이유로 페인트를 내 팔레트에 등록하기 실패\n");
+                }
+                break;
             }
-//            if (!palettes.stream().anyMatch(p -> p.getId() == Integer.parseInt(paletteId))) {
-//                System.out.println("그런 팔레트는 존재하지 않습니다.");
-//            } else {
-//                for (int i = 0; i < palettes.size(); i++) {
-//                    if (palettes.get(i).getId() == Integer.parseInt(paletteId)) {
-//                        List<Paint> list = palettes.get(i).getPaints();
-//
-//                        // 팔레트 내 페인트가 중복으로 존재하면 저장하지 않음
-//                        Paint tempPaint = paint;
-//                        if(list.stream().anyMatch(p -> p.getId() == tempPaint.getId())) {
-//                            System.out.println("이미 존재하는 페인트는 저장할 수 없습니다.");
-//                        } else{
-//                            list.add(paint);
-//                            palette = palettes.get(i);
-//                            palette.setPaints(list);
-//                            paletteRepository.insertOrUpdate(palette);
-//                            System.out.println("팔레트에 페인트 추가 완료");
-//                        }
-//                        break;
-//                    }
-//                }
-//                break;
-//            }
+        }
+    }
+
+    public void paintImgViewer(int idx){
+        Paint paint = paintRepository.findById(idx).orElse(null);
+
+        if(paint != null) {
+            ImgViewer.viewer(paint.getProdImg());
+        } else {
+            System.out.println("해당하는 팔레트 번호가 없습니다.");
         }
     }
 }

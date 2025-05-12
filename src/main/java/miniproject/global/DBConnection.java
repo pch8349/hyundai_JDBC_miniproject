@@ -12,7 +12,8 @@ public class DBConnection {
             Class.forName("oracle.jdbc.OracleDriver");
 
             conn = DriverManager.getConnection(
-                    "jdbc:oracle:thin:@localhost:1521/XEPDB1",
+                    "jdbc:oracle:thin:@localhost:1521/XE",
+//                    "jdbc:oracle:thin:@localhost:1521/XEPDB1",
                     "paintfinder",
                     "tiger"
             );
