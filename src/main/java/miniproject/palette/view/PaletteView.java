@@ -1,9 +1,7 @@
 package miniproject.palette.view;
 
-import miniproject.App;
 import miniproject.common.code.StateCode;
 import miniproject.global.InputChecker;
-import miniproject.member.dao.Member;
 import miniproject.palette.service.PaletteService;
 
 import java.util.Scanner;
@@ -14,9 +12,7 @@ public class PaletteView {
 
     private final PaletteService paletteService = new PaletteService();
 
-    private final Member member = App.member;
-
-    public void paletteMenuView() throws Exception{
+    public void paletteMenuView(){
         Scanner sc = new Scanner(System.in);
 
         while(true) {
@@ -44,19 +40,19 @@ public class PaletteView {
 
             } else if (input == 3){
 
-                paletteService.changePaletteLike(member);
+                paletteService.changePaletteLike();
 
             } else if (input == 4) {
 
-                paletteService.findMyPalette(member);
+                paletteService.findMyPalette();
 
             } else if(input == 5) {
 
-                paletteService.findMyLikePaletteList(member);
+                paletteService.findMyLikePaletteList();
 
             } else if(input == 6){
 
-                paletteService.editPalette(member);
+                paletteService.editPalette();
 
             } else if(input == 7){
 

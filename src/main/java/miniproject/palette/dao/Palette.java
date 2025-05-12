@@ -2,15 +2,12 @@ package miniproject.palette.dao;
 
 import lombok.Getter;
 import lombok.Setter;
-import miniproject.paint.dao.Paint;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
-public class Palette implements Serializable {
+public class Palette{
     private int palPk;
     private int memberIdx;
     private String palName;

@@ -20,7 +20,6 @@ public class PaintView {
     private final PaintService paintService = new PaintService();
 
     public void paintMenuView(){
-        // TODO : 페인트 등록부터 시작 필요.
 
         String search = "";
         List<PaintColorCode> codeList = null;

@@ -13,6 +13,7 @@ import miniproject.paint.dao.Paint;
 import miniproject.paint.dto.PaintDto;
 import miniproject.paint.repository.PaintRepository;
 import miniproject.paint.repository.PaintRepositoryImpl;
+import miniproject.palPaint.dao.PalPaint;
 import miniproject.palPaint.repository.PalPaintRepository;
 import miniproject.palPaint.repository.PalPaintRepositoryImpl;
 import miniproject.palette.dao.Palette;
@@ -170,7 +171,7 @@ public class PaintService {
                 continue;
             }  else {
                 // 페인트 넣기
-                if(palPaintRepository.save(input, paint.getPaintPk())){
+                if(palPaintRepository.save(new PalPaint(input, paint.getPaintPk()))){
                     System.out.println("페인트 내 팔레트에 등록 성공\n");
                 } else {
                     System.out.println("알 수 없는 이유로 페인트를 내 팔레트에 등록하기 실패\n");

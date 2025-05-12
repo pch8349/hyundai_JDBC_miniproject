@@ -2,6 +2,7 @@ package miniproject.palette.repository;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import miniproject.App;
 import miniproject.common.code.PaintColorCode;
 import miniproject.global.DBConnection;
 import miniproject.member.dao.Member;
@@ -80,7 +81,7 @@ public class PaletteRepositoryImpl implements PaletteRepository {
     }
 
     @Override
-    public Optional<PaletteDto> findByPalettePk(int pk) {
+    public Optional<PaletteDto> findPaletteDtoByPalettePk(int pk) {
         String sql = """
                 SELECT
               JSON_OBJECT(
@@ -135,73 +136,127 @@ public class PaletteRepositoryImpl implements PaletteRepository {
     }
 
     @Override
-    public void insertOrUpdate(Palette palette) throws Exception{
-        File file = new File(paletteDBPath);
+    public Optional<List<PaletteDto>> findByMemberPk(int memberPk) {
+        String sql = """
+                SELECT
+              JSON_OBJECT(
+                'palPk' VALUE pal.pal_pk,
+                'member' VALUE JSON_OBJECT(
+                   'memberPk' VALUE m.member_pk,
+                   'memberId' VALUE m.member_id,
+                   'nickname' VALUE m.nickname
+                 ),
+             	'palName' VALUE pal.pal_name,
+            	'imgSrc' VALUE pal.img_src,
+                'likeCount' VALUE NVL(l.like_count, 0),
+                'paintList' VALUE JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                    'paintPk' VALUE p.paint_pk,
+                    'colorEn' VALUE p.color_en
+                  )
+                )
+              ) AS palette_json
+            FROM pal_paint pp
+            LEFT JOIN palette pal ON pp.pal_idx = pal.pal_pk
+            LEFT JOIN member m ON pal.member_idx = m.member_pk
+            LEFT JOIN paint p ON pp.paint_idx = p.paint_pk
+            LEFT JOIN (
+              SELECT pal_idx, COUNT(*) AS like_count
+              FROM pal_like
+              GROUP BY pal_idx
+            ) l ON pal.pal_pk = l.pal_idx
+            WHERE pal.member_idx = ?
+            GROUP BY pal.pal_pk, m.member_pk, m.member_id, m.nickname, pal.pal_name, pal.img_src, l.like_count
+                """;
 
-        List<Palette> palettes = new ArrayList<>();
+        List<PaletteDto> palettes = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper(); // Jackson 사용
 
-        // 기존 객체 읽기
-        if (file.exists() && file.length() > 0) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                while (true) {
-                    try {
-                        Palette p = (Palette) ois.readObject();
-                        palettes.add(p);
-                    } catch (EOFException e) {
-                        break;
-                    }
-                }
+        try(
+                Connection conn = DBConnection.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+        ){
+            pstmt.setInt(1, memberPk);
+
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String json = rs.getString("palette_json");
+                PaletteDto dto = mapper.readValue(json, PaletteDto.class);
+                palettes.add(dto);
             }
-        }
 
-        boolean updated = false;
+            return Optional.of(palettes);
 
-        for (int i = 0; i < palettes.size(); i++) {
-//            if (palette.getId() == palettes.get(i).getId()) {
-//                palettes.set(i, palette); // 교체
-//                updated = true;
-//                break;
-//            }
+        } catch (Exception e){
+            e.printStackTrace();
         }
-        if (!updated) {
-            palettes.add(palette); // 없으면 새로 추가
-        }
-
-        // 3. 전체 덮어쓰기
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            for (Palette pal : palettes) {
-                oos.writeObject(pal);
-            }
-        }
+        return Optional.empty();
     }
 
     @Override
-    public List<Palette> findByMemberLike(Member member) throws Exception {
+    public Optional<List<PaletteDto>> findByMemberLike(int memberPk){
 
-        List<Palette> palettes = new ArrayList<>();
+        String sql = """
+                SELECT
+              JSON_OBJECT(
+                'palPk' VALUE pal.pal_pk,
+                'member' VALUE JSON_OBJECT(
+                   'memberPk' VALUE m.member_pk,
+                   'memberId' VALUE m.member_id,
+                   'nickname' VALUE m.nickname
+                 ),
+             	'palName' VALUE pal.pal_name,
+            	'imgSrc' VALUE pal.img_src,
+                'likeCount' VALUE NVL(l.like_count, 0),
+                'paintList' VALUE JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                    'paintPk' VALUE p.paint_pk,
+                    'colorEn' VALUE p.color_en
+                  )
+                )
+              ) AS palette_json
+            FROM pal_paint pp
+            LEFT JOIN palette pal ON pp.pal_idx = pal.pal_pk
+            LEFT JOIN member m ON pal.member_idx = m.member_pk
+            LEFT JOIN paint p ON pp.paint_idx = p.paint_pk
+            LEFT JOIN (
+              SELECT pal_idx, COUNT(*) AS like_count
+              FROM pal_like
+              GROUP BY pal_idx
+            ) l ON pal.pal_pk = l.pal_idx
+            WHERE EXISTS (
+              SELECT 1
+              FROM pal_like pl
+              WHERE pl.pal_idx = pal.pal_pk
+                AND pl.member_idx = ?
+            )
+            GROUP BY pal.pal_pk, m.member_pk, m.member_id, m.nickname, pal.pal_name, pal.img_src, l.like_count
+            """;
 
-        File file = new File(paletteDBPath);
-        // 파일이 존재하지 않거나 비어 있으면 false 반환
-        if (!file.exists() || file.length() == 0) {
-            return null;
-        }
+        List<PaletteDto> palettes = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper(); // Jackson 사용
 
-        FileInputStream fis = new FileInputStream(file);
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        try{
-            while(true){
-                Palette palette = (Palette) ois.readObject();
-//                if(member.getLikes().contains(palette.getId())){
-//                    palettes.add(palette);
-//                }
+        try(
+                Connection conn = DBConnection.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+        ){
+            pstmt.setInt(1, memberPk);
+
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String json = rs.getString("palette_json");
+                PaletteDto dto = mapper.readValue(json, PaletteDto.class);
+                palettes.add(dto);
             }
-        } catch (EOFException e) {
-        } finally {
-            ois.close();
-            fis.close();
-        }
 
-        return palettes;
+            return Optional.of(palettes);
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -240,63 +295,6 @@ public class PaletteRepositoryImpl implements PaletteRepository {
     }
 
     @Override
-    public int findLastId() throws Exception {
-        File file = new File(paletteDBPath);
-
-        int maxId = 0;
-
-        if (!file.exists() || file.length() == 0) {
-            return maxId;
-        }
-
-        FileInputStream fis = new FileInputStream(file);
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        try{
-            while(true){
-                Palette palette = (Palette) ois.readObject();
-//                if(palette.getId() > maxId){
-//                    maxId = palette.getId();
-//                }
-            }
-        } catch (EOFException e) {
-        } finally {
-            ois.close();
-            fis.close();
-        }
-
-        return maxId;
-    }
-
-    @Override
-    public Palette findById(int id) throws Exception {
-        File file = new File(paletteDBPath);
-
-        Palette palette = null;
-
-        if (!file.exists() || file.length() == 0) {
-            return null;
-        }
-
-        FileInputStream fis = new FileInputStream(file);
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        try{
-            while(true){
-                Palette p = (Palette) ois.readObject();
-//                if(p.getId() == id){
-//                    palette = p;
-//                    break;
-//                }
-            }
-        } catch (EOFException e) {
-        } finally {
-            ois.close();
-            fis.close();
-        }
-
-        return palette;
-    }
-
-    @Override
     public Optional<Integer> save(Palette palette) {
         String sql = "BEGIN " + "INSERT INTO PALETTE (MEMBER_IDX, PAL_NAME, IMG_SRC)" +
                 "VALUES (?, ?, ?) RETURNING PAL_PK INTO ?; END;";
@@ -319,5 +317,76 @@ public class PaletteRepositoryImpl implements PaletteRepository {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+    @Override
+    public boolean isExistByPk(int pk) {
+        String sql = "SELECT 1 FROM PALETTE WHERE PAL_PK = ?";
+
+        try(
+                Connection conn = DBConnection.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+        ){
+            pstmt.setInt(1, pk);
+
+            try(ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public Optional<Palette> findByPk(int pk) {
+        String sql = "SELECT * FROM PALETTE WHERE PAL_PK = ?";
+        try(
+                Connection conn = DBConnection.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+        ){
+            pstmt.setInt(1, pk);
+
+            ResultSet rs = pstmt.executeQuery();
+
+            if(rs.next()) {
+                return Optional.of(new Palette(
+                        rs.getInt("PAL_PK"),
+                        rs.getInt("MEMBER_IDX"),
+                        rs.getString("PAL_NAME"),
+                        rs.getString("IMG_SRC"),
+                        rs.getObject("CREATE_DATE", LocalDateTime.class),
+                        rs.getObject("EDIT_DATE", LocalDateTime.class)
+                ));
+            }
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean updatePalette(Palette palette) {
+        String sql = "UPDATE PALETTE SET PAL_NAME = ?, IMG_SRC = ?, EDIT_DATE = ? WHERE PAL_PK = ?";
+
+        try(
+                Connection conn = DBConnection.connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                ) {
+
+            pstmt.setString(1, palette.getPalName());
+            pstmt.setString(2, palette.getImgSrc());
+            pstmt.setObject(3, Timestamp.valueOf(LocalDateTime.now()));
+
+            int rs = pstmt.executeUpdate();
+
+            return rs > 0;
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 }

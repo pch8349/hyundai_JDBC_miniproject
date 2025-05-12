@@ -15,27 +15,26 @@ public interface PaletteRepository {
      */
     Optional<List<PaletteDto>> findAll();
 
-    /***
-     * 팔레트 pk 로 이미지 주소 찾기
+    /**
+     * 팔레트 pk 로 특정 팔레트 찾기
      * @param pk
      * @return PaletteDto
      */
-    Optional<PaletteDto> findByPalettePk(int pk);
+    Optional<PaletteDto> findPaletteDtoByPalettePk(int pk);
 
     /**
-     * 팔레트 정보 변경/신규작성
-     * @param palette
-     * @throws Exception
+     * 멤버 pk 가 가지고 있는 팔레트 목록 조회
+     * @param memberPk
+     * @return
      */
-    void insertOrUpdate(Palette palette) throws Exception;
+    Optional<List<PaletteDto>> findByMemberPk(int memberPk);
 
     /**
      * 로그인 한 유저가 누른 좋아요 팔레트 목록 출력
-     * @param member
+     * @param memberPk
      * @return
-     * @throws Exception
      */
-    List<Palette> findByMemberLike(Member member) throws Exception;
+    Optional<List<PaletteDto>> findByMemberLike(int memberPk);
 
     /**
      * 로그인 한 유저의 팔레트 목록 출력
@@ -45,19 +44,30 @@ public interface PaletteRepository {
     Optional<List<Palette>> findByMemberIdx(int memberIdx);
 
     /**
-     * 입력된 팔레트 중 가장 높은 id 를 출력. 없으면 0 출력
+     * 팔레트 저장
+     * @param palette
      * @return
-     * @throws Exception
      */
-    int findLastId() throws Exception;
+    Optional<Integer> save(Palette palette);
 
     /**
-     * 팔레트 id 로 단일 팔레트 조회
-     * @param id
-     * @return
-     * @throws Exception
+     * 팔레트 존재 여부 파악
+     * @param pk
+     * @return true/false
      */
-    Palette findById(int id) throws Exception;
+    boolean isExistByPk(int pk);
 
-    Optional<Integer> save(Palette palette);
+    /**
+     * DB 원본 데이터 팔레트 데이터 읽어오기
+     * @param pk
+     * @return
+     */
+    Optional<Palette> findByPk(int pk);
+
+    /**
+     * 팔레트 정보를 전체 업데이터 해버리기
+     * @param palette
+     * @return
+     */
+    boolean updatePalette(Palette palette);
 }

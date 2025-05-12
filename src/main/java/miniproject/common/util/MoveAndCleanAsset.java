@@ -7,8 +7,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class MoveAndCleanAsset {
-
+    // TODO : 깃 바뀌면 바꿀곳
     private final String[] ImgPath = {"C:\\temp\\paint", "C:\\temp\\palette"};
+    private final String assetPath = "C:\\Users\\pch83\\git\\현대퓨처넷\\JDBC_PROJECT\\src\\asset";
+//    private final String assetPath = "C:\\Users\\pch\\git\\JDBC\\hyundai_JDBC_miniproject\\src\\asset";
 
     /**
      * 이미지 파일 String 으로 변환
@@ -16,7 +18,7 @@ public class MoveAndCleanAsset {
      * @return
      */
     public String saveImg(int dir){
-        Path assetDir = Path.of("C:\\Users\\pch\\git\\JDBC\\hyundai_JDBC_miniproject\\src\\asset");
+        Path assetDir = Path.of(assetPath);
         Path targetDir = Path.of(ImgPath[dir]);
 
         try {

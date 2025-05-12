@@ -37,4 +37,6 @@ public interface PaintRepository {
      * @return
      */
     boolean isPaintExist(int id);
+
+
 }

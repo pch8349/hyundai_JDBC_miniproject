@@ -2,7 +2,6 @@ package miniproject.palette.dto;
 
 import lombok.Getter;
 import lombok.Setter;
-import miniproject.member.dto.MemberDto;
 import miniproject.member.dto.MemberLightDto;
 import miniproject.paint.dto.PaintDto;
 
