@@ -12,8 +12,8 @@ public class DBConnection {
             Class.forName("oracle.jdbc.OracleDriver");
             // TODO : 깃 바뀌면 바꿀곳
             conn = DriverManager.getConnection(
-//                    "jdbc:oracle:thin:@localhost:1521/XE",
-                    "jdbc:oracle:thin:@localhost:1521/XEPDB1",
+                    "jdbc:oracle:thin:@localhost:1521/XE",
+//                    "jdbc:oracle:thin:@localhost:1521/XEPDB1",
                     "paintfinder",
                     "tiger"
             );

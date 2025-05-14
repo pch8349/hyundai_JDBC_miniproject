@@ -91,6 +91,7 @@ public class PaintService {
             System.out.println((i+1)+". "+brandCodes.get(i).name());
         }
         int brandIdx = InputChecker.validate(sc.nextLine(), 1, brandCodes.size());
+        if(brandIdx == -1) return ResponseDto.fail("잘못된 입력으로 등록 실패");
 
         System.out.print("색상명을 입력하세요 : ");
         String colorEn = sc.nextLine();
@@ -101,6 +102,7 @@ public class PaintService {
             System.out.println((i+1)+". "+paintColorCodes.get(i).name());
         }
         int colorgroupInput = InputChecker.validate(sc.nextLine(), 1, paintColorCodes.size());
+        if(colorgroupInput == -1) return ResponseDto.fail("잘못된 입력으로 등록 실패");
         PaintColorCode colorgroupEn = paintColorCodes.get(colorgroupInput-1);
 
         System.out.println("등록할 팔레트 이미지를 asset 폴더 안에 넣어주십시오.");

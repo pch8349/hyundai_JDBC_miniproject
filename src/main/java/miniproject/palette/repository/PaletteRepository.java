@@ -59,10 +59,11 @@ public interface PaletteRepository {
 
     /**
      * DB 원본 데이터 팔레트 데이터 읽어오기
-     * @param pk
+     * @param palettePk
+     * @param memberIdx
      * @return
      */
-    Optional<Palette> findByPk(int pk);
+    Optional<Palette> findByPalettePkAndMemberIdx(int palettePk, int memberIdx);
 
     /**
      * 팔레트 정보를 전체 업데이터 해버리기

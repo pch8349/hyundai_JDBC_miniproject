@@ -41,7 +41,14 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                     'paintPk' VALUE p.paint_pk,
                     'colorEn' VALUE p.color_en
                   )
-                )
+                ),
+                'loginMemberLiked' VALUE CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM pal_like pl
+                            WHERE pl.pal_idx = pal.pal_pk
+                              AND pl.member_idx = ?
+                        ) THEN 0 ELSE 1
+                    END
               ) AS palette_json
             FROM pal_paint pp
             LEFT JOIN palette pal ON pp.pal_idx = pal.pal_pk
@@ -62,6 +69,8 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                 Connection conn = DBConnection.connect();
                 PreparedStatement pstmt = conn.prepareStatement(sql);
                 ){
+
+            pstmt.setInt(1, App.member.getMemberPk());
 
             ResultSet rs = pstmt.executeQuery();
 
@@ -99,7 +108,14 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                     'paintPk' VALUE p.paint_pk,
                     'colorEn' VALUE p.color_en
                   )
-                )
+                ),
+                'loginMemberLiked' VALUE CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM pal_like pl
+                        WHERE pl.pal_idx = pal.pal_pk
+                          AND pl.member_idx = ?
+                    ) THEN 0 ELSE 1
+                END
               ) AS palette_json
             FROM pal_paint pp
             LEFT JOIN palette pal ON pp.pal_idx = pal.pal_pk
@@ -120,7 +136,8 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                 Connection conn = DBConnection.connect();
                 PreparedStatement pstmt = conn.prepareStatement(sql);
         ){
-            pstmt.setInt(1, pk);
+            pstmt.setInt(1, App.member.getMemberPk());
+            pstmt.setInt(2, pk);
 
             ResultSet rs = pstmt.executeQuery();
 
@@ -154,7 +171,14 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                     'paintPk' VALUE p.paint_pk,
                     'colorEn' VALUE p.color_en
                   )
-                )
+                ),
+                'loginMemberLiked' VALUE CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM pal_like pl
+                        WHERE pl.pal_idx = pal.pal_pk
+                          AND pl.member_idx = ?
+                    ) THEN 0 ELSE 1
+                END
               ) AS palette_json
             FROM pal_paint pp
             LEFT JOIN palette pal ON pp.pal_idx = pal.pal_pk
@@ -177,6 +201,7 @@ public class PaletteRepositoryImpl implements PaletteRepository {
                 PreparedStatement pstmt = conn.prepareStatement(sql);
         ){
             pstmt.setInt(1, memberPk);
+            pstmt.setInt(2, memberPk);
 
             ResultSet rs = pstmt.executeQuery();
 
@@ -340,13 +365,14 @@ public class PaletteRepositoryImpl implements PaletteRepository {
     }
 
     @Override
-    public Optional<Palette> findByPk(int pk) {
-        String sql = "SELECT * FROM PALETTE WHERE PAL_PK = ?";
+    public Optional<Palette> findByPalettePkAndMemberIdx(int palettePk, int memberIdx) {
+        String sql = "SELECT * FROM PALETTE WHERE PAL_PK = ? And MEMBER_IDX = ?";
         try(
                 Connection conn = DBConnection.connect();
                 PreparedStatement pstmt = conn.prepareStatement(sql);
         ){
-            pstmt.setInt(1, pk);
+            pstmt.setInt(1, palettePk);
+            pstmt.setInt(2, memberIdx);
 
             ResultSet rs = pstmt.executeQuery();
 
@@ -379,6 +405,7 @@ public class PaletteRepositoryImpl implements PaletteRepository {
             pstmt.setString(1, palette.getPalName());
             pstmt.setString(2, palette.getImgSrc());
             pstmt.setObject(3, Timestamp.valueOf(LocalDateTime.now()));
+            pstmt.setInt(4, palette.getPalPk());
 
             int rs = pstmt.executeUpdate();
 

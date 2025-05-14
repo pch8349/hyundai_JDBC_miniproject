@@ -16,6 +16,7 @@ import miniproject.palLike.dao.PalLike;
 import miniproject.palLike.repository.PalLikeRepository;
 import miniproject.palLike.repository.PalLikeRepositoryImpl;
 import miniproject.palPaint.dao.PalPaint;
+import miniproject.palPaint.dto.PalPaintDto;
 import miniproject.palPaint.repository.PalPaintRepository;
 import miniproject.palPaint.repository.PalPaintRepositoryImpl;
 import miniproject.palette.dao.Palette;
@@ -23,9 +24,6 @@ import miniproject.palette.dto.PaletteDto;
 import miniproject.palette.repository.PaletteRepository;
 import miniproject.palette.repository.PaletteRepositoryImpl;
 
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -135,20 +133,18 @@ public class PaletteService {
 
         System.out.println("-----팔레트 수정 페이지-----");
 
-        System.out.println("내 팔레트 목록");
-        List<PaletteDto> paletteDtos = paletteRepository.findByMemberPk(member.getMemberPk()).orElse(Collections.emptyList());
-        paletteDtos.forEach(PaletteDto::printInfo);
-
-        Palette palette = null;
-
         while (true) {
+
+            System.out.println("내 팔레트 목록");
+            List<PaletteDto> paletteDtos = paletteRepository.findByMemberPk(member.getMemberPk()).orElse(Collections.emptyList());
+            paletteDtos.forEach(PaletteDto::printInfo);
 
             System.out.println("수정할 내 팔레트 번호를 입력하세요. 취소하려면 0 를 입력하세요.");
             int input = InputChecker.validate(sc.nextLine());
 
             if (input == 0) break;
 
-            palette = paletteRepository.findByPk(input).orElse(null);
+            Palette palette = paletteRepository.findByPalettePkAndMemberIdx(input, member.getMemberPk()).orElse(null);
 
             if (palette == null) {
                 System.out.println(WRONGMESSAGE);
@@ -204,62 +200,50 @@ public class PaletteService {
                 } else if (paintMenuInput == 1) {
 
                     // 팔레트에 저장된 페인트 목록 출력
+                    List<PalPaintDto> palPaintDtos = palPaintRepository.findByPalIdx(input).orElse(Collections.emptyList());
+                    System.out.println(input+"번 팔레트의 물감 목록");
+                    palPaintDtos.forEach(PalPaintDto::printInfo);
 
                     // 삭제할 페인트 번호 입력받기
-
-                    // 삭제할 페인트 번호 입력 확인
-
-                    // 페인트 삭제
-
-                    System.out.println("삭제할 페인트 번호를 입력하세요.");
+                    System.out.print("삭제할 페인트 번호(맨앞의 숫자) 입력 : ");
                     int delPaintInput = InputChecker.validate(sc.nextLine());
-                    if (delPaintInput == -1) continue;
+                    if (delPaintInput == -1) {
+                        continue;
+                    } else {
 
+                        // 삭제할 페인트 번호 입력 확인
+                        boolean isInList = palPaintDtos.stream().anyMatch(dto -> dto.getPalPaintPk() == delPaintInput);
+                        if(isInList){
+                            // 페인트 삭제
+                            if(palPaintRepository.deleteByPalPaintPk(delPaintInput)){
+                                System.out.println("삭제 성공");
+                            } else {
+                                System.out.println("삭제 실패");
+                            }
+
+                        } else {
+                            System.out.println("그런 번호는 없습니다.");
+                        }
+                    }
+                } else if(paintMenuInput == 2){
+                    System.out.print("추가할 페인트 번호를 입력하세요 : ");
+                    int newPaintInput =InputChecker.validate(sc.nextLine());
+                    if (newPaintInput == -1) continue;
+                    Paint paint = paintRepository.findById(newPaintInput).orElse(null);
+
+                    if(paint == null) System.out.println("그런 페인트는 없습니다.");
+                    else {
+                        palPaintRepository.save(new PalPaint(input, paint.getPaintPk()));
+                    }
+
+                } else if(paintMenuInput == 3){
 
                 }
+
             }
 
         }
     }
-
-//                    boolean b = palette.getPaints().removeIf(paint -> paint.getId() == delPaintInput);
-//                    if(b) {
-//                        System.out.println("페인트 id "+delPaintInput+" 삭제 완료");
-//                        paletteRepository.insertOrUpdate(palette);
-//                    } else {
-//                        System.out.println(WRONGMESSAGE);
-//                    }
-//
-//                } else if(paintMenuInput == 2){
-//
-//                    System.out.println("추가할 페인트 번호를 입력하세요.");
-//                    int newPaintInput = Integer.parseInt(sc.nextLine());
-//                    if(palette.getPaints().stream().noneMatch(p -> p.getId() == newPaintInput)) {
-//                        Paint paint = paintRepository.findById(newPaintInput);
-//                        if(paint == null){
-//                            System.out.println("그런 페인트는 없습니다.");
-//                        } else {
-//                            List<Paint> lists = palette.getPaints();
-//                            lists.add(paint);
-//                            palette.setPaints(lists);
-//                            System.out.println("페인트 id "+newPaintInput+" 추가 완료");
-//                            paletteRepository.insertOrUpdate(palette);
-//                        }
-//                    } else {
-//                        System.out.println("이미 팔레트에 존재하는 페인트입니다.");
-//                    }
-//
-//                } else if(paintMenuInput == 3){
-//
-//                } else {
-//                    System.out.println(WRONGMESSAGE);
-//                }
-//            } else if(choice == EXIT){
-//                break;
-//            } else {
-//                System.out.println(WRONGMESSAGE);
-//            }
-
 
     /**
      * 팔레트 신규 저장
